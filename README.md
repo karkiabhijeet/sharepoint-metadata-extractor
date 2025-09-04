@@ -22,10 +22,17 @@ A PowerShell solution for extracting Microsoft Purview Sensitivity Labels from S
 
 ### API Permissions Required
 
-**Microsoft Graph Application Permissions:**
+**For App Registration (Recommended):**
 - `Sites.Read.All` - Read SharePoint sites and document libraries
 - `Files.Read.All` - Read files and extract sensitivity labels
 - `InformationProtectionPolicy.Read.All` - Read sensitivity label catalog
+
+**For Interactive Login:**
+If using interactive authentication, ensure your user account has:
+- **SharePoint Administrator** role (to access all sites)
+- **Compliance Administrator** role (to read sensitivity labels)
+- **Global Reader** role (minimum read access)
+- Or site-specific permissions if scanning only certain sites
 
 ## Quick Start
 
@@ -52,18 +59,47 @@ Edit `config.json` and add:
 ```
 
 The tool will guide you through:
-1. Automatically discover all your SharePoint sites
-2. Choose to scan ALL sites or select specific ones
-3. Extract sensitivity labels with progress tracking
-4. Generate consolidated CSV reports
+1. **Automatically discover all your SharePoint sites** - Gets complete inventory
+2. **Choose extraction mode:**
+   - **Option 1 - Extract ALL sites**: Processes every site automatically (best for complete audits)
+   - **Option 2 - Extract SPECIFIC sites**: Lets you review and select which sites to process (best for targeted scans)
+3. **Extract sensitivity labels with progress tracking** - Shows real-time progress
+4. **Generate consolidated CSV reports** - Creates easy-to-analyze reports
 
 ## What You Get
 
-The tool creates timestamped folders with:
-- **Sites Inventory**: Complete list of all your SharePoint sites
-- **Individual Site Reports**: Detailed results for each site
-- **Consolidated Report**: Combined results from all processed sites
-- **Labels Cache**: List of all sensitivity labels in your organization
+The tool creates timestamped folders with these files:
+
+### 1. Sites Inventory (`SharePoint-Sites-Inventory_TIMESTAMP.csv`)
+Complete list of all SharePoint sites with columns:
+- `SiteName` - Display name of the SharePoint site
+- `SiteUrl` - Full URL to the site
+- `Extract` - Whether this site will be processed (True/False)
+- `Status` - Processing status (Pending/Completed/Error)
+- `LastScanned` - When the site was last processed
+
+### 2. Individual Site Reports (`Site_[SiteName]_TIMESTAMP.csv`)
+Detailed results for each processed site with columns:
+- `TenantId` - Your Azure AD tenant identifier
+- `SiteName` - SharePoint site name
+- `SiteUrl` - Full site URL
+- `LibraryName` - Document library name (e.g., "Documents")
+- `FileName` - Name of the file
+- `FileExtension` - File type (docx, xlsx, pdf, etc.)
+- `FileSizeBytes` - File size in bytes
+- `CreatedBy` - Who created the file
+- `CreatedDateTime` - When file was created
+- `LastModifiedDateTime` - When file was last modified
+- `LabelIds` - Sensitivity label unique identifiers
+- `LabelNames` - Human-readable label names (e.g., "Confidential")
+- `AssignmentMethods` - How labels were applied (manual, automatic, etc.)
+- `ScanDateTime` - When this scan was performed
+
+### 3. Consolidated Report (`Consolidated_SharePoint_SensitivityLabels_TIMESTAMP.csv`)
+Combined results from all processed sites - same columns as individual reports but includes data from all sites
+
+### 4. Labels Cache (`Sensitivity-Labels-Cache.json`)
+List of all sensitivity labels in your organization with their IDs and display names
 
 ## Troubleshooting
 
