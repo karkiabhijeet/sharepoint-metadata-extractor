@@ -1,0 +1,124 @@
+{
+  "authentication": {
+    "preferredMethod": "appOnly",
+    "appOnly": {
+      "clientId": "YOUR_CLIENT_ID_HERE",
+      "clientSecret": "YOUR_CLIENT_SECRET_HERE",
+      "tenantId": "YOUR_TENANT_ID_HERE",
+      "certThumbprint": "",
+      "certStore": "CurrentUser"
+    },
+    "interactive": {
+      "scopes": [
+        "Sites.Read.All",
+        "Files.Read.All",
+        "InformationProtectionPolicy.Read.All"
+      ]
+    }
+  },
+  "siteFilters": {
+    "includeSiteSearch": ["*"],
+    "excludeSiteUrls": [],
+    "sampleSiteSearches": {
+      "allSites": ["*"],
+      "specificDepartments": ["Finance*", "HR*", "Legal*"],
+      "projectSites": ["Project*", "Team*"],
+      "specificSites": ["Contoso Intranet", "Executive Team"]
+    }
+  },
+  "libraryFilters": {
+    "includeLibraries": [],
+    "excludeLibraries": [
+      "Form Templates",
+      "Preservation Hold Library",
+      "Site Assets",
+      "Site Pages",
+      "Images",
+      "Pages",
+      "Settings",
+      "Style Library",
+      "AppPages",
+      "Apps for SharePoint",
+      "Apps for Office",
+      "Site Collection Documents",
+      "Site Collection Images",
+      "Documents Shared with Everyone"
+    ]
+  },
+  "fileProcessing": {
+    "extensions": ["docx", "xlsx", "pptx", "pdf"],
+    "supportedExtensions": {
+      "office": ["docx", "xlsx", "pptx", "doc", "xls", "ppt"],
+      "pdf": ["pdf"],
+      "all": ["docx", "xlsx", "pptx", "pdf", "doc", "xls", "ppt"]
+    }
+  },
+  "performance": {
+    "graphPageSize": 200,
+    "maxRetries": 5,
+    "baseDelaySeconds": 3,
+    "batchSize": 1000,
+    "enableProgressReporting": true,
+    "verboseLogging": false
+  },
+  "labelResolution": {
+    "skipPurview": false,
+    "useGraphLabelCatalog": true,
+    "cacheLabels": true
+  },
+  "output": {
+    "exportFormat": "csv",
+    "supportedFormats": {
+      "csv": {
+        "enabled": true,
+        "encoding": "UTF8",
+        "includeHeaders": true
+      },
+      "json": {
+        "enabled": true,
+        "indent": true
+      },
+      "parquet": {
+        "enabled": false,
+        "compression": "snappy"
+      },
+      "database": {
+        "enabled": false,
+        "connectionString": "",
+        "tableName": "SharePointSensitivityLabels"
+      }
+    },
+    "fileNaming": {
+      "useTimestamp": true,
+      "prefix": "SPO_SensitivityLabels",
+      "customName": ""
+    },
+    "splitting": {
+      "enabled": false,
+      "maxRecordsPerFile": 100000,
+      "splitBySite": false,
+      "splitByDate": false
+    }
+  },
+  "largeTenant": {
+    "enabled": false,
+    "streamingMode": true,
+    "checkpointInterval": 10000,
+    "resumeFromCheckpoint": false,
+    "checkpointFile": "checkpoint.json",
+    "memoryOptimization": true,
+    "backgroundProcessing": false
+  },
+  "reporting": {
+    "generateSummary": true,
+    "includeStatistics": true,
+    "createDashboard": false,
+    "emailResults": false,
+    "emailSettings": {
+      "smtpServer": "",
+      "from": "",
+      "to": [],
+      "subject": "SharePoint Sensitivity Labels Report"
+    }
+  }
+}

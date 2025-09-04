@@ -1,0 +1,51 @@
+# Sensitive configuration files
+config.json
+
+# Output data files (keep folder structure but exclude data)
+Output/*.csv
+Output/*.json
+Output/Run_*/
+!Output/README.md
+
+# PowerShell execution logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Windows thumbnails
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Visual Studio Code
+.vscode/
+.history/
+
+# PowerShell Gallery cache
+PSGalleryModules/
+
+# Authentication tokens and certificates
+*.pfx
+*.p12
+*.crt
+*.cer
+*.key
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Node modules (if any)
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Test data
+test_data/
+sample_data/
