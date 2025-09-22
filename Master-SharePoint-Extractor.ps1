@@ -594,13 +594,21 @@ try {
             "1" {
                 Write-Host "`n OPTION 1 SELECTED: Use existing SharePoint inventory" -ForegroundColor Cyan
                 $inventoryFile = Use-ExistingInventory -RunFolder $runFolder
+                Write-Host "DEBUG MAIN: Received inventory file: '$inventoryFile'" -ForegroundColor Cyan
                 if ($inventoryFile) {
+                    Write-Host "DEBUG MAIN: inventoryFile is not null/empty" -ForegroundColor Cyan
                     # Clean any whitespace issues from GitHub download corruption
                     $inventoryFile = $inventoryFile.ToString().Trim()
+                    Write-Host "DEBUG MAIN: After trim: '$inventoryFile'" -ForegroundColor Cyan
+                    Write-Host "DEBUG MAIN: Test-Path result: $(Test-Path $inventoryFile)" -ForegroundColor Cyan
                     if (Test-Path $inventoryFile) {
                         Write-Host "Successfully loaded existing inventory: $inventoryFile" -ForegroundColor Green
                         break
+                    } else {
+                        Write-Host "DEBUG MAIN: Test-Path failed!" -ForegroundColor Red
                     }
+                } else {
+                    Write-Host "DEBUG MAIN: inventoryFile is null or empty!" -ForegroundColor Red
                 }
                 Write-Host "Failed to use existing inventory. Please try again." -ForegroundColor Red
                 $inventoryFile = $null
