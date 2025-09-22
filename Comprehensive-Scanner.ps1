@@ -4,6 +4,7 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$SiteName,
+    [string]$SiteUrl,
     [switch]$ReturnData,
     [string]$RunFolder = ".\Output",
     [switch]$SkipModuleImport,
@@ -96,17 +97,30 @@ try {
             }
         }
         
-        if (-not $SilentMode) { Write-Host "Total known sensitivity labels: $($labelMap.Count)" -ForegroundColor Green }    # Search for the target site
-    if (-not $SilentMode) { Write-Host "Searching for site: $SiteName..." -ForegroundColor Yellow }
-    $searchUri = "https://graph.microsoft.com/v1.0/sites?search=" + [uri]::EscapeDataString($SiteName)
-    $sitesResponse = Invoke-MgGraphRequest -Uri $searchUri -Method GET
-    
-    if ($sitesResponse.value.Count -eq 0) {
-        if (-not $SilentMode) { Write-Warning "No sites found matching '$SiteName'" }
-        return
+        if (-not $SilentMode) { Write-Host "Total known sensitivity labels: $($labelMap.Count)" -ForegroundColor Green }    # Use direct site access instead of unreliable search
+    if ($SiteUrl) {
+        # Use direct site URL - much more reliable than search
+        if (-not $SilentMode) { Write-Host "Accessing site directly: $SiteUrl" -ForegroundColor Yellow }
+        try {
+            $targetSite = Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/sites/$($SiteUrl.Replace('https://', '').Replace('/', ':'))" -Method GET
+        } catch {
+            # Fallback to hostname:path format
+            $hostAndPath = $SiteUrl.Replace('https://', '').Replace('/', ':')
+            $targetSite = Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/v1.0/sites/$hostAndPath" -Method GET
+        }
+    } else {
+        # Fallback to search by name (less reliable)
+        if (-not $SilentMode) { Write-Host "Searching for site: $SiteName..." -ForegroundColor Yellow }
+        $searchUri = "https://graph.microsoft.com/v1.0/sites?search=" + [uri]::EscapeDataString($SiteName)
+        $sitesResponse = Invoke-MgGraphRequest -Uri $searchUri -Method GET
+        
+        if ($sitesResponse.value.Count -eq 0) {
+            if (-not $SilentMode) { Write-Warning "No sites found matching '$SiteName'" }
+            return
+        }
+        
+        $targetSite = $sitesResponse.value[0]
     }
-    
-    $targetSite = $sitesResponse.value[0]
     if (-not $SilentMode) { Write-Host "Found site: $($targetSite.displayName)" -ForegroundColor Green }
     
     # Get ALL document libraries (not just Documents)

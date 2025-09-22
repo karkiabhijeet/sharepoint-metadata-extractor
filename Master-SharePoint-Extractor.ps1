@@ -479,7 +479,8 @@ function Start-ExtractionProcess {
         Write-Host "`n[$processedCount/$($sitesToProcess.Count)] Processing: $($site.SiteName) ($($percentComplete)%)" -ForegroundColor Yellow
         try {
             # Use the comprehensive scanner for each site (silent mode for performance)
-            $siteResults = & .\Comprehensive-Scanner.ps1 -SiteName $site.SiteName -ReturnData -RunFolder $RunFolder -SkipModuleImport -SilentMode
+            # Pass both SiteName and SiteUrl for more reliable access
+            $siteResults = & .\Comprehensive-Scanner.ps1 -SiteName $site.SiteName -SiteUrl $site.SiteUrl -ReturnData -RunFolder $RunFolder -SkipModuleImport -SilentMode
             if ($siteResults -and $siteResults.Count -gt 0) {
                 # Export individual site CSV
                 $siteFileName = ($site.SiteName -replace '[^\w\s-]', '') -replace '\s+', '_'
