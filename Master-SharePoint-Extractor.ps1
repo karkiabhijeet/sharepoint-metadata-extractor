@@ -198,12 +198,16 @@ Please follow these steps:" -ForegroundColor Cyan
         }
         
         Write-Host "Inventory file validated successfully!" -ForegroundColor Green
+        Write-Host "DEBUG: About to return file path: '$inventoryFile'" -ForegroundColor Magenta
+        return $inventoryFile
     } catch {
         Write-Error "Error reading inventory file: $($_.Exception.Message)"
+        Write-Host "DEBUG: Exception caught, returning null" -ForegroundColor Red
         return $null
     }
     
-    # Explicit return of the validated file path
+    # This should never be reached if try-catch works properly
+    Write-Host "DEBUG: Fallback return (shouldn't happen): '$inventoryFile'" -ForegroundColor Red
     return $inventoryFile
 }
 
