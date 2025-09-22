@@ -51,12 +51,81 @@ function Show-Banner {
 "@ -ForegroundColor Cyan
 }
 
+function Show-InitialMenu {
+    Write-Host "`n SHAREPOINT INVENTORY OPTIONS:" -ForegroundColor Yellow
+    Write-Host "1. Use existing SharePoint inventory list" -ForegroundColor Cyan
+    Write-Host "2. Extract new SharePoint inventory (scan all sites)" -ForegroundColor Green
+    Write-Host "3. Exit" -ForegroundColor Red
+    Write-Host ""
+}
+
 function Show-MainMenu {
     Write-Host "`n EXTRACTION WORKFLOW OPTIONS:" -ForegroundColor Yellow
     Write-Host "1. Extract from ALL SharePoint sites (automated)" -ForegroundColor Green
     Write-Host "2. Extract from SPECIFIC sites (user-selected)" -ForegroundColor Green
     Write-Host "3. Exit" -ForegroundColor Red
     Write-Host ""
+}
+
+function Use-ExistingInventory {
+    param([string]$RunFolder)
+    
+    Write-Host "`nUSING EXISTING SHAREPOINT INVENTORY:" -ForegroundColor Yellow
+    Write-Host "
+Please follow these steps:" -ForegroundColor Cyan
+    Write-Host "1. Copy your existing SharePoint-Sites-Inventory_*.csv file to: $RunFolder" -ForegroundColor White
+    Write-Host "2. Make sure the 'Extract' column is set to 'True' for sites you want to process" -ForegroundColor White
+    Write-Host "3. Make sure the 'Extract' column is set to 'False' for sites you want to skip" -ForegroundColor White
+    Write-Host "4. Press Enter when you've placed the file in the run folder" -ForegroundColor White
+    Write-Host ""
+    
+    Read-Host "Press Enter when you've copied your inventory file"
+    
+    # Look for inventory file in run folder
+    try {
+        $inventoryFiles = Get-ChildItem -Path $RunFolder -Filter "SharePoint-Sites-Inventory_*.csv" -ErrorAction Stop
+    } catch {
+        Write-Error "Could not access run folder: $RunFolder"
+        return $null
+    }
+    
+    if ($inventoryFiles.Count -eq 0) {
+        Write-Error "No SharePoint-Sites-Inventory_*.csv file found in $RunFolder"
+        Write-Host "Please copy your inventory file and try again." -ForegroundColor Red
+        return $null
+    }
+    
+    if ($inventoryFiles.Count -gt 1) {
+        Write-Warning "Multiple inventory files found. Using the first one: $($inventoryFiles[0].Name)"
+    }
+    
+    # Get the full path of the first inventory file
+    $inventoryFile = $inventoryFiles[0].FullName.Trim()
+    
+    if (-not (Test-Path $inventoryFile)) {
+        Write-Error "Inventory file does not exist: $inventoryFile"
+        return $null
+    }
+    
+    Write-Host "Found inventory file: $inventoryFile" -ForegroundColor Green
+    
+    # Validate the file has required columns
+    try {
+        $testImport = Import-Csv -Path $inventoryFile | Select-Object -First 1
+        $requiredColumns = @('SiteName', 'SiteUrl', 'Extract')
+        $missingColumns = $requiredColumns | Where-Object { $_ -notin $testImport.PSObject.Properties.Name }
+        
+        if ($missingColumns.Count -gt 0) {
+            Write-Error "Missing required columns: $($missingColumns -join ', ')"
+            return $null
+        }
+        
+        Write-Host "Inventory file validated successfully!" -ForegroundColor Green
+        return $inventoryFile
+    } catch {
+        Write-Error "Error reading inventory file: $($_.Exception.Message)"
+        return $null
+    }
 }
 
 function Get-AllSharePointSites {
@@ -265,6 +334,9 @@ function Start-ExtractionProcess {
         [string]$Timestamp
     )
     
+    # Trim any leading/trailing spaces from the file path
+    $SitesInventoryFile = $SitesInventoryFile.Trim()
+    
     Write-Host "`n STEP 2: Starting Sensitivity Labels Extraction..." -ForegroundColor Yellow
     Write-Host "Extraction Mode: $ExtractionType" -ForegroundColor Cyan
     
@@ -416,30 +488,35 @@ try {
     # Step 0: Get sensitivity labels cache
     $labelMap = Get-SensitivityLabelsCache -Config $config -RunFolder $runFolder
     
-    # Step 1: Generate SharePoint sites inventory
-    $allSites = Get-AllSharePointSites -Config $config
-    if (-not $allSites -or $allSites.Count -eq 0) {
-        Write-Error " Could not retrieve SharePoint sites"
-        return
-    }
-    
-    $inventoryFile = Export-SitesInventory -Sites $allSites -RunFolder $runFolder -Timestamp $timestamp
-    
-    # Step 2: Show main menu and get user choice
+    # Initial Menu: Choose inventory method
+    $inventoryFile = $null
     do {
-        Show-MainMenu
-        $choice = Read-Host "Please select an option (1-3)"
+        Show-InitialMenu
+        $inventoryChoice = Read-Host "Please select an option (1-3)"
         
-        switch ($choice) {
+        switch ($inventoryChoice) {
             "1" {
-                Write-Host "`n OPTION 1 SELECTED: Extract from ALL sites" -ForegroundColor Green
-                Start-ExtractionProcess -SitesInventoryFile $inventoryFile -LabelMap $labelMap -Config $config -ExtractionType "ALL_SITES" -RunFolder $runFolder -Timestamp $timestamp
-                break
+                Write-Host "`n OPTION 1 SELECTED: Use existing SharePoint inventory" -ForegroundColor Cyan
+                $inventoryFile = Use-ExistingInventory -RunFolder $runFolder
+                if ($inventoryFile -and (Test-Path $inventoryFile)) {
+                    Write-Host "Successfully loaded existing inventory: $inventoryFile" -ForegroundColor Green
+                    break
+                } else {
+                    Write-Host "Failed to use existing inventory. Please try again." -ForegroundColor Red
+                    $inventoryFile = $null
+                }
             }
             "2" {
-                Write-Host "`n OPTION 2 SELECTED: Extract from SPECIFIC sites" -ForegroundColor Green
-                Wait-ForUserReview -InventoryFile $inventoryFile
-                Start-ExtractionProcess -SitesInventoryFile $inventoryFile -LabelMap $labelMap -Config $config -ExtractionType "SELECTED_SITES" -RunFolder $runFolder -Timestamp $timestamp
+                Write-Host "`n OPTION 2 SELECTED: Extract new SharePoint inventory" -ForegroundColor Green
+                
+                # Step 1: Generate SharePoint sites inventory
+                $allSites = Get-AllSharePointSites -Config $config
+                if (-not $allSites -or $allSites.Count -eq 0) {
+                    Write-Error " Could not retrieve SharePoint sites"
+                    return
+                }
+                
+                $inventoryFile = Export-SitesInventory -Sites $allSites -RunFolder $runFolder -Timestamp $timestamp
                 break
             }
             "3" {
@@ -450,7 +527,47 @@ try {
                 Write-Host " Invalid selection. Please choose 1, 2, or 3." -ForegroundColor Red
             }
         }
-    } while ($choice -notin @("1", "2", "3"))
+    } while ($inventoryChoice -notin @("1", "2", "3") -or -not $inventoryFile)
+    
+    # Final validation of inventory file
+    if (-not $inventoryFile -or -not (Test-Path $inventoryFile)) {
+        Write-Error "No valid inventory file available. Cannot proceed with extraction."
+        return
+    }
+    
+    # Step 2: Handle extraction based on initial choice
+    if ($inventoryChoice -eq "1") {
+        # For existing inventory, go directly to extraction (user already selected sites in CSV)
+        Write-Host "`n PROCESSING EXISTING INVENTORY: Extracting from pre-selected sites" -ForegroundColor Green
+        Start-ExtractionProcess -SitesInventoryFile $inventoryFile -LabelMap $labelMap -Config $config -ExtractionType "SELECTED_SITES" -RunFolder $runFolder -Timestamp $timestamp
+    } else {
+        # For new inventory, show extraction menu and get user choice
+        do {
+            Show-MainMenu
+            $choice = Read-Host "Please select an option (1-3)"
+            
+            switch ($choice) {
+                "1" {
+                    Write-Host "`n OPTION 1 SELECTED: Extract from ALL sites" -ForegroundColor Green
+                    Start-ExtractionProcess -SitesInventoryFile $inventoryFile -LabelMap $labelMap -Config $config -ExtractionType "ALL_SITES" -RunFolder $runFolder -Timestamp $timestamp
+                    break
+                }
+                "2" {
+                    Write-Host "`n OPTION 2 SELECTED: Extract from SPECIFIC sites" -ForegroundColor Green
+                    Wait-ForUserReview -InventoryFile $inventoryFile
+                    Start-ExtractionProcess -SitesInventoryFile $inventoryFile -LabelMap $labelMap -Config $config -ExtractionType "SELECTED_SITES" -RunFolder $runFolder -Timestamp $timestamp
+                    break
+                }
+                "3" {
+                    Write-Host " Goodbye!" -ForegroundColor Yellow
+                    return
+                }
+                default {
+                    Write-Host " Invalid selection. Please choose 1, 2, or 3." -ForegroundColor Red
+                }
+            }
+        } while ($choice -notin @("1", "2", "3"))
+    }
     
     Write-Host "`n EXTRACTION WORKFLOW COMPLETED!" -ForegroundColor Green
     Write-Host "Check the $runFolder directory for all generated files." -ForegroundColor Cyan
