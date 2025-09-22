@@ -27,6 +27,53 @@ param(
     [string]$ConfigPath = ".\config.json"
 )
 
+# ============================================================================
+# MODULE AVAILABILITY CHECK (Fast Startup)
+# ============================================================================
+
+Write-Host "Verifying required PowerShell modules are available..." -ForegroundColor Cyan
+Write-Host "Modules will be imported only when needed for better performance" -ForegroundColor Gray
+
+# Required modules for the script
+$requiredModules = @(
+    @{Name = "Microsoft.Graph"; MinVersion = "1.0.0"},
+    @{Name = "ExchangeOnlineManagement"; MinVersion = "2.0.0"}
+)
+
+$missingModules = @()
+foreach ($module in $requiredModules) {
+    Write-Host "Checking availability: $($module.Name)..." -ForegroundColor Gray
+    
+    # Quick check if module is installed (no import)
+    $installedModule = Get-Module -ListAvailable -Name $module.Name | Sort-Object Version -Descending | Select-Object -First 1
+    
+    if (-not $installedModule) {
+        Write-Host "✗ Module $($module.Name) not found" -ForegroundColor Red
+        $missingModules += $module.Name
+    } else {
+        Write-Host "✓ Module $($module.Name) available (Version: $($installedModule.Version))" -ForegroundColor Green
+    }
+}
+
+if ($missingModules.Count -gt 0) {
+    Write-Host "`nMissing modules detected. Installing now..." -ForegroundColor Yellow
+    foreach ($moduleName in $missingModules) {
+        try {
+            Write-Host "Installing $moduleName..." -ForegroundColor Yellow
+            Install-Module -Name $moduleName -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop
+            Write-Host "✓ Successfully installed $moduleName" -ForegroundColor Green
+        } catch {
+            Write-Error "Failed to install $moduleName`: $($_.Exception.Message)"
+            Write-Host "Please manually run: Install-Module -Name $moduleName -Scope CurrentUser -Force" -ForegroundColor Red
+            exit 1
+        }
+    }
+}
+
+Write-Host "`n✓ All required modules are available!" -ForegroundColor Green
+Write-Host "Modules will be imported on-demand for optimal performance" -ForegroundColor Gray
+Write-Host ""
+
 # Import configuration helpers
 if (Test-Path ".\ConfigHelpers.ps1") {
     . .\ConfigHelpers.ps1
@@ -132,6 +179,17 @@ function Get-AllSharePointSites {
     param([object]$Config)
     
     Write-Host "`nSTEP 1: Generating SharePoint Sites Inventory (Enterprise Mode)..." -ForegroundColor Yellow
+    
+    # Import Microsoft Graph modules only when needed
+    Write-Host "Loading Microsoft Graph modules..." -ForegroundColor Cyan
+    try {
+        Import-Module Microsoft.Graph.Authentication -Force -WarningAction SilentlyContinue
+        Import-Module Microsoft.Graph.Sites -Force -WarningAction SilentlyContinue
+        Write-Host " Microsoft Graph modules loaded" -ForegroundColor Green
+    } catch {
+        Write-Warning "Could not load specific Graph modules, trying main module"
+        Import-Module Microsoft.Graph -Force
+    }
     
     # Connect to Graph API
     Write-Host "Connecting to Microsoft Graph..." -ForegroundColor Cyan
@@ -278,6 +336,8 @@ function Get-SensitivityLabelsCache {
     # Try Purview first if not skipped
     if (-not $Config.labelResolution.skipPurview) {
         try {
+            Write-Host "Loading Exchange Online Management module..." -ForegroundColor Cyan
+            Import-Module ExchangeOnlineManagement -Force -WarningAction SilentlyContinue
             Write-Host "Connecting to Purview for label catalog..." -ForegroundColor Cyan
             Connect-IPPSSession -WarningAction SilentlyContinue
             
