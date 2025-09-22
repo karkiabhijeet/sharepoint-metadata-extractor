@@ -198,16 +198,12 @@ Please follow these steps:" -ForegroundColor Cyan
         }
         
         Write-Host "Inventory file validated successfully!" -ForegroundColor Green
-        Write-Host "DEBUG: About to return file path: '$inventoryFile'" -ForegroundColor Magenta
-        return $inventoryFile
     } catch {
         Write-Error "Error reading inventory file: $($_.Exception.Message)"
-        Write-Host "DEBUG: Exception caught, returning null" -ForegroundColor Red
         return $null
     }
     
-    # This should never be reached if try-catch works properly
-    Write-Host "DEBUG: Fallback return (shouldn't happen): '$inventoryFile'" -ForegroundColor Red
+    # Explicit return of the validated file path
     return $inventoryFile
 }
 
@@ -594,21 +590,14 @@ try {
             "1" {
                 Write-Host "`n OPTION 1 SELECTED: Use existing SharePoint inventory" -ForegroundColor Cyan
                 $inventoryFile = Use-ExistingInventory -RunFolder $runFolder
-                Write-Host "DEBUG MAIN: Received inventory file: '$inventoryFile'" -ForegroundColor Cyan
                 if ($inventoryFile) {
-                    Write-Host "DEBUG MAIN: inventoryFile is not null/empty" -ForegroundColor Cyan
-                    # Clean any whitespace issues from GitHub download corruption
-                    $inventoryFile = $inventoryFile.ToString().Trim()
-                    Write-Host "DEBUG MAIN: After trim: '$inventoryFile'" -ForegroundColor Cyan
-                    Write-Host "DEBUG MAIN: Test-Path result: $(Test-Path $inventoryFile)" -ForegroundColor Cyan
+                    # Ensure we get a single string value and clean any whitespace
+                    $inventoryFile = [string]$inventoryFile
+                    $inventoryFile = $inventoryFile.Trim()
                     if (Test-Path $inventoryFile) {
                         Write-Host "Successfully loaded existing inventory: $inventoryFile" -ForegroundColor Green
                         break
-                    } else {
-                        Write-Host "DEBUG MAIN: Test-Path failed!" -ForegroundColor Red
                     }
-                } else {
-                    Write-Host "DEBUG MAIN: inventoryFile is null or empty!" -ForegroundColor Red
                 }
                 Write-Host "Failed to use existing inventory. Please try again." -ForegroundColor Red
                 $inventoryFile = $null
