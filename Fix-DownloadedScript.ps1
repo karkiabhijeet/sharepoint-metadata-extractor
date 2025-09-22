@@ -49,19 +49,34 @@ try {
     # Fix common syntax issues from GitHub downloads
     Write-Host "Fixing common syntax issues..." -ForegroundColor Cyan
     
+    # Fix URL ampersand issues - replace problematic & with concatenated strings
+    Write-Host "  - Fixing Graph API URL ampersand issues..." -ForegroundColor Gray
+    $content = $content -replace '(siteCollection)&(`\$top=\$pageSize)"', '$1"+\"&$2"'
+    $content = $content -replace '(driveType)&(`\$top=50)"', '$1"+\"&$2"'
+    $content = $content -replace '(lastModifiedDateTime)&(`\$top=50)"', '$1"+\"&$2"'
+    
     # Fix backtick issues in URLs (common GitHub download corruption)
     $content = $content -replace '`\$select', '`$select'
     $content = $content -replace '`\$top', '`$top'
-    $content = $content -replace '&`\$', '&`$'
     
     # Fix string interpolation issues
-    $content = $content -replace '\$\(([^)]+)\)([^"]*)"', '$($1)$2"'
-    
-    # Fix percentage symbol issues
+    Write-Host "  - Fixing string interpolation..." -ForegroundColor Gray
     $content = $content -replace '\$percentComplete%', '$($percentComplete)%'
+    $content = $content -replace '(\$\([^)]+\)) records\)', '$1 records)'
     
-    # Fix record count display
-    $content = $content -replace '\$\(([^)]+)\.Count\)\s+records', '$($1.Count) records'
+    # Fix newline character issues
+    Write-Host "  - Fixing newline characters..." -ForegroundColor Gray
+    $content = $content -replace '\\`n', '`n'
+    
+    # Fix quote issues in date format strings
+    Write-Host "  - Fixing quote issues..." -ForegroundColor Gray
+    $content = $content -replace '"yyyy-MM-dd\s*$', '"yyyy-MM-dd HH:mm:ss"'
+    
+    # Fix missing closing brackets/quotes
+    $content = $content -replace '= "Completed"\s*$', '= "Completed"'
+    
+    # Fix any stray closing braces
+    $content = $content -replace '^\s*}\s*$', ''
     
     # Remove any problematic Unicode characters
     $content = $content -replace '[^\x00-\x7F]', ''

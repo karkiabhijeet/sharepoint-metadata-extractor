@@ -5,25 +5,45 @@
 If you downloaded this script from GitHub and get errors like:
 ```
 Unexpected token '}' in expression or statement.
-Unexpected token '`n' in expression or statement.
+Unexpected token '`n' in expression or statement.  
 The ampersand (&) character is not allowed.
+You must provide a value expression following the '%' operator.
+Unexpected token 'records' in expression or statement.
+Missing closing ')' in expression.
 ```
 
-This is a common issue with PowerShell scripts downloaded from GitHub due to encoding corruption.
+**Root Cause**: GitHub ZIP downloads can corrupt PowerShell files, causing syntax errors in:
+- Graph API URLs (ampersand characters)
+- String interpolation (percentage symbols)
+- Quote handling (missing closures)
+- Backtick escaping (newline characters)
 
-## ✅ Quick Fix
+## ✅ Quick Fix (Try in Order)
 
-1. **Download the Fix Script**: Make sure you also download `Fix-DownloadedScript.ps1`
+### Method 1: Automatic Fix
+```powershell
+# First, unblock the files
+Get-ChildItem -Path . -Filter "*.ps1" | Unblock-File
 
-2. **Run the Fix**:
-   ```powershell
-   .\Fix-DownloadedScript.ps1
-   ```
+# Then run the fix
+.\Fix-DownloadedScript.ps1
 
-3. **Run the Main Script**:
-   ```powershell
-   .\Master-SharePoint-Extractor.ps1
-   ```
+# Finally run the main script
+.\Master-SharePoint-Extractor.ps1
+```
+
+### Method 2: Emergency Rebuild (if Method 1 fails)
+```powershell
+.\Emergency-Rebuild.ps1
+# This creates a basic validation script if corruption is severe
+```
+
+### Method 3: Git Clone (Recommended - Always Works)
+```bash
+git clone https://github.com/karkiabhijeet/sharepoint-metadata-extractor.git
+cd sharepoint-metadata-extractor
+# No corruption issues with git clone!
+```
 
 ## Alternative Solutions
 

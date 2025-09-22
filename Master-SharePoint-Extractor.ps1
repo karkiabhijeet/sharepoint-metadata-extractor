@@ -49,10 +49,10 @@ foreach ($module in $requiredModules) {
     $installedModule = Get-Module -ListAvailable -Name $module.Name | Sort-Object Version -Descending | Select-Object -First 1
     
     if (-not $installedModule) {
-        Write-Host "✗ Module $($module.Name) not found" -ForegroundColor Red
+        Write-Host " Module $($module.Name) not found" -ForegroundColor Red
         $missingModules += $module.Name
     } else {
-        Write-Host "✓ Module $($module.Name) available (Version: $($installedModule.Version))" -ForegroundColor Green
+        Write-Host " Module $($module.Name) available (Version: $($installedModule.Version))" -ForegroundColor Green
     }
 }
 
@@ -62,7 +62,7 @@ if ($missingModules.Count -gt 0) {
         try {
             Write-Host "Installing $moduleName..." -ForegroundColor Yellow
             Install-Module -Name $moduleName -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop
-            Write-Host "✓ Successfully installed $moduleName" -ForegroundColor Green
+            Write-Host " Successfully installed $moduleName" -ForegroundColor Green
         } catch {
             Write-Error "Failed to install $moduleName`: $($_.Exception.Message)"
             Write-Host "Please manually run: Install-Module -Name $moduleName -Scope CurrentUser -Force" -ForegroundColor Red
@@ -71,7 +71,7 @@ if ($missingModules.Count -gt 0) {
     }
 }
 
-Write-Host "`n✓ All required modules are available!" -ForegroundColor Green
+Write-Host "`n All required modules are available!" -ForegroundColor Green
 Write-Host "Modules will be imported on-demand for optimal performance" -ForegroundColor Gray
 Write-Host ""
 
@@ -217,7 +217,7 @@ function Get-AllSharePointSites {
         Write-Host "Fetching all SharePoint sites (bulk operation)..." -ForegroundColor Yellow
         
         # Method 1: Use sites endpoint with expanded properties for maximum efficiency
-        $sitesUri = "https://graph.microsoft.com/v1.0/sites?`$select=id,displayName,webUrl,createdDateTime,lastModifiedDateTime,siteCollection&`$top=$pageSize"
+        $sitesUri = "https://graph.microsoft.com/v1.0/sites?`$select=id,displayName,webUrl,createdDateTime,lastModifiedDateTime,siteCollection"+"&`$top=$pageSize"
         
         $totalSites = 0
         $batchCount = 0
@@ -242,7 +242,7 @@ function Get-AllSharePointSites {
                     }
                     
                     # Quick drive count (don't enumerate files yet - performance optimization)
-                    $drivesUri = "https://graph.microsoft.com/v1.0/sites/$($site.id)/drives?`$select=id,driveType&`$top=50"
+                    $drivesUri = "https://graph.microsoft.com/v1.0/sites/$($site.id)/drives?`$select=id,driveType"+"&`$top=50"
                     $drivesResponse = Invoke-MgGraphRequest -Uri $drivesUri -Method GET -ErrorAction SilentlyContinue
                     if ($drivesResponse.value) {
                         $docLibraryCount = ($drivesResponse.value | Where-Object { $_.driveType -eq 'documentLibrary' }).Count
@@ -283,7 +283,7 @@ function Get-AllSharePointSites {
         Write-Warning "Falling back to slower individual site processing..."
         
         # Fallback to slower method if bulk fails
-        $sitesUri = "https://graph.microsoft.com/v1.0/sites?`$select=id,displayName,webUrl,createdDateTime,lastModifiedDateTime&`$top=50"
+        $sitesUri = "https://graph.microsoft.com/v1.0/sites?`$select=id,displayName,webUrl,createdDateTime,lastModifiedDateTime"+"&`$top=50"
         $sitesResponse = Invoke-MgGraphRequest -Uri $sitesUri -Method GET
         
         foreach ($site in $sitesResponse.value) {
@@ -445,7 +445,7 @@ function Start-ExtractionProcess {
         
         $processedCount++
         $percentComplete = [math]::Round(($processedCount / $sitesToProcess.Count) * 100, 1)
-        Write-Host "`n[$processedCount/$($sitesToProcess.Count)] Processing: $($site.SiteName) ($percentComplete%)" -ForegroundColor Yellow
+        Write-Host "`n[$processedCount/$($sitesToProcess.Count)] Processing: $($site.SiteName) ($($percentComplete)%)" -ForegroundColor Yellow
         try {
             # Use the comprehensive scanner for each site (silent mode for performance)
             $siteResults = & .\Comprehensive-Scanner.ps1 -SiteName $site.SiteName -ReturnData -RunFolder $RunFolder -SkipModuleImport -SilentMode
@@ -637,3 +637,4 @@ try {
     Write-Error " Fatal error in main execution: $($_.Exception.Message)"
     Write-Error $_.ScriptStackTrace
 }
+
