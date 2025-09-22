@@ -198,11 +198,13 @@ Please follow these steps:" -ForegroundColor Cyan
         }
         
         Write-Host "Inventory file validated successfully!" -ForegroundColor Green
-        return $inventoryFile
     } catch {
         Write-Error "Error reading inventory file: $($_.Exception.Message)"
         return $null
     }
+    
+    # Explicit return of the validated file path
+    return $inventoryFile
 }
 
 function Get-AllSharePointSites {
@@ -437,14 +439,14 @@ function Start-ExtractionProcess {
     $sitesToProcess = $allSitesFromCsv | Where-Object { 
         $_.SiteName -and 
         $_.SiteName.Trim() -ne "" -and 
-        $_.SiteName -ne $null 
+        $null -ne $_.SiteName 
     }
     
     # Report any invalid sites that were filtered out
     $invalidSites = $allSitesFromCsv | Where-Object { 
         -not $_.SiteName -or 
         $_.SiteName.Trim() -eq "" -or 
-        $_.SiteName -eq $null 
+        $null -eq $_.SiteName 
     }
     
     if ($invalidSites.Count -gt 0) {
@@ -588,20 +590,13 @@ try {
             "1" {
                 Write-Host "`n OPTION 1 SELECTED: Use existing SharePoint inventory" -ForegroundColor Cyan
                 $inventoryFile = Use-ExistingInventory -RunFolder $runFolder
-                Write-Host "DEBUG: Returned inventory file: '$inventoryFile'" -ForegroundColor Magenta
                 if ($inventoryFile) {
                     # Clean any whitespace issues from GitHub download corruption
                     $inventoryFile = $inventoryFile.ToString().Trim()
-                    Write-Host "DEBUG: After trimming: '$inventoryFile'" -ForegroundColor Magenta
-                    Write-Host "DEBUG: Test-Path result: $(Test-Path $inventoryFile)" -ForegroundColor Magenta
                     if (Test-Path $inventoryFile) {
                         Write-Host "Successfully loaded existing inventory: $inventoryFile" -ForegroundColor Green
                         break
-                    } else {
-                        Write-Host "DEBUG: File exists check failed for: '$inventoryFile'" -ForegroundColor Red
                     }
-                } else {
-                    Write-Host "DEBUG: Use-ExistingInventory returned null or empty" -ForegroundColor Red
                 }
                 Write-Host "Failed to use existing inventory. Please try again." -ForegroundColor Red
                 $inventoryFile = $null
