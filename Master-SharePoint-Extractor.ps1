@@ -6,10 +6,10 @@
 
 .DESCRIPTION
     This script provides a guided workflow to:
-    1. Fetch sensitivity labels catalog for referen                Write-Host "  - $($label.DisplayName) [$($label.Guid)]" -ForegroundColor Graye
-    2. Genera                Write-Host "  - $($label.displayName) [$($label.id)]" -ForegroundColor Graye inventory of all SharePoint sites with sizes
+    1. Fetch sensitivity labels catalog for reference
+    2. Generate inventory of all SharePoint sites with sizes  
     3. Allow user to choose extraction scope (all sites vs specific sites)
-    4. Generate individual CSV per site + consoli    Write-Host "PERFORMANCE OPTIMIZED MODE:" -ForegroundColor Greenated report
+    4. Generate individual CSV per site + consolidated report
 
 .PARAMETER ConfigPath
     Path to the configuration file (default: .\config.json)
@@ -27,6 +27,35 @@
 param(
     [string]$ConfigPath = ".\config.json"
 )
+
+# Self-healing mechanism for GitHub download issues
+try {
+    # Check if we can run basic PowerShell operations that commonly fail with corrupted downloads
+    $testPath = "  test_path_with_spaces  ".Trim()
+    if ([string]::IsNullOrWhiteSpace($testPath)) { throw "String operations failed" }
+} catch {
+    Write-Host "Detected GitHub download corruption. Attempting self-repair..." -ForegroundColor Yellow
+    
+    # Unblock files that might be blocked from internet download
+    try {
+        Get-ChildItem -Path $PSScriptRoot -Filter "*.ps1" | Unblock-File -ErrorAction SilentlyContinue
+        Write-Host "Unblocked PowerShell files." -ForegroundColor Green
+    } catch {
+        Write-Warning "Could not unblock files automatically."
+    }
+    
+    # Re-encode this script if needed
+    try {
+        $scriptContent = Get-Content -Path $PSCommandPath -Raw -Encoding UTF8
+        $scriptContent | Out-File -FilePath $PSCommandPath -Encoding UTF8 -Force
+        Write-Host "Re-encoded script file to UTF8." -ForegroundColor Green
+        Write-Host "Please run the script again." -ForegroundColor Yellow
+        exit 0
+    } catch {
+        Write-Error "Self-repair failed. Please download a fresh copy or use 'git clone' instead."
+        exit 1
+    }
+}
 
 # ============================================================================
 # MODULE AVAILABILITY CHECK (Fast Startup)
@@ -558,15 +587,17 @@ try {
         switch ($inventoryChoice) {
             "1" {
                 Write-Host "`n OPTION 1 SELECTED: Use existing SharePoint inventory" -ForegroundColor Cyan
-                $tempInventoryFile = Use-ExistingInventory -RunFolder $runFolder
-                if ($tempInventoryFile -and (Test-Path $tempInventoryFile)) {
-                    Write-Host "Successfully loaded existing inventory: $tempInventoryFile" -ForegroundColor Green
-                    $inventoryFile = $tempInventoryFile.Trim()
-                    break
-                } else {
-                    Write-Host "Failed to use existing inventory. Please try again." -ForegroundColor Red
-                    $inventoryFile = $null
+                $inventoryFile = Use-ExistingInventory -RunFolder $runFolder
+                if ($inventoryFile) {
+                    # Clean any whitespace issues from GitHub download corruption
+                    $inventoryFile = $inventoryFile.ToString().Trim()
+                    if (Test-Path $inventoryFile) {
+                        Write-Host "Successfully loaded existing inventory: $inventoryFile" -ForegroundColor Green
+                        break
+                    }
                 }
+                Write-Host "Failed to use existing inventory. Please try again." -ForegroundColor Red
+                $inventoryFile = $null
             }
             "2" {
                 Write-Host "`n OPTION 2 SELECTED: Extract new SharePoint inventory" -ForegroundColor Green
