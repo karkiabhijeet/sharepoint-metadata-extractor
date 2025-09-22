@@ -558,9 +558,10 @@ try {
         switch ($inventoryChoice) {
             "1" {
                 Write-Host "`n OPTION 1 SELECTED: Use existing SharePoint inventory" -ForegroundColor Cyan
-                $inventoryFile = Use-ExistingInventory -RunFolder $runFolder
-                if ($inventoryFile -and (Test-Path $inventoryFile)) {
-                    Write-Host "Successfully loaded existing inventory: $inventoryFile" -ForegroundColor Green
+                $tempInventoryFile = Use-ExistingInventory -RunFolder $runFolder
+                if ($tempInventoryFile -and (Test-Path $tempInventoryFile)) {
+                    Write-Host "Successfully loaded existing inventory: $tempInventoryFile" -ForegroundColor Green
+                    $inventoryFile = $tempInventoryFile.Trim()
                     break
                 } else {
                     Write-Host "Failed to use existing inventory. Please try again." -ForegroundColor Red
@@ -588,11 +589,15 @@ try {
                 Write-Host " Invalid selection. Please choose 1, 2, or 3." -ForegroundColor Red
             }
         }
-    } while ($inventoryChoice -notin @("1", "2", "3") -or -not $inventoryFile)
+    } while ($inventoryChoice -notin @("1", "2", "3") -or [string]::IsNullOrEmpty($inventoryFile))
     
     # Final validation of inventory file
-    if (-not $inventoryFile -or -not (Test-Path $inventoryFile)) {
-        Write-Error "No valid inventory file available. Cannot proceed with extraction."
+    if ([string]::IsNullOrEmpty($inventoryFile)) {
+        Write-Error "Inventory file variable is empty or null. Cannot proceed with extraction."
+        return
+    }
+    if (-not (Test-Path $inventoryFile)) {
+        Write-Error "Inventory file does not exist: '$inventoryFile'. Cannot proceed with extraction."
         return
     }
     
