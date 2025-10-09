@@ -54,11 +54,11 @@
     }
   },
   "performance": {
-    "graphPageSize": 200,
-    "maxRetries": 5,
-    "baseDelaySeconds": 3,
-    "batchSize": 1000,
-    "enableProgressReporting": true,
+    "graphPageSize": 999,
+    "maxRetries": 10,
+    "baseDelaySeconds": 1,
+    "batchSize": 50000,
+    "enableProgressReporting": false,
     "verboseLogging": false
   },
   "labelResolution": {
@@ -101,13 +101,13 @@
     }
   },
   "largeTenant": {
-    "enabled": false,
+    "enabled": true,
     "streamingMode": true,
-    "checkpointInterval": 10000,
-    "resumeFromCheckpoint": false,
+    "checkpointInterval": 5000,
+    "resumeFromCheckpoint": true,
     "checkpointFile": "checkpoint.json",
     "memoryOptimization": true,
-    "backgroundProcessing": false
+    "backgroundProcessing": true
   },
   "reporting": {
     "generateSummary": true,

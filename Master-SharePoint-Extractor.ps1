@@ -273,7 +273,7 @@ function Get-AllSharePointSites {
                     }
                     
                     # Quick drive count (don't enumerate files yet - performance optimization)
-                    $drivesUri = "https://graph.microsoft.com/v1.0/sites/$($site.id)/drives?`$select=id,driveType"+"&`$top=50"
+                    $drivesUri = "https://graph.microsoft.com/v1.0/sites/$($site.id)/drives?`$select=id,driveType"+"&`$top=999"
                     $drivesResponse = Invoke-MgGraphRequest -Uri $drivesUri -Method GET -ErrorAction SilentlyContinue
                     if ($drivesResponse.value) {
                         $docLibraryCount = ($drivesResponse.value | Where-Object { $_.driveType -eq 'documentLibrary' }).Count
@@ -314,7 +314,7 @@ function Get-AllSharePointSites {
         Write-Warning "Falling back to slower individual site processing..."
         
         # Fallback to slower method if bulk fails
-        $sitesUri = "https://graph.microsoft.com/v1.0/sites?`$select=id,displayName,webUrl,createdDateTime,lastModifiedDateTime"+"&`$top=50"
+        $sitesUri = "https://graph.microsoft.com/v1.0/sites?`$select=id,displayName,webUrl,createdDateTime,lastModifiedDateTime"+"&`$top=999"
         $sitesResponse = Invoke-MgGraphRequest -Uri $sitesUri -Method GET
         
         foreach ($site in $sitesResponse.value) {

@@ -159,9 +159,9 @@ try {
             
             try {
                 $itemsUri = if ($current.Id -eq "root") {
-                    "https://graph.microsoft.com/v1.0/drives/$DriveId/root/children?`$select=id,name,file,folder,size,createdDateTime,lastModifiedDateTime,createdBy,webUrl,parentReference"
+                    "https://graph.microsoft.com/v1.0/drives/$DriveId/root/children?`$top=999&`$select=id,name,file,folder,size,createdDateTime,lastModifiedDateTime,createdBy,webUrl,parentReference"
                 } else {
-                    "https://graph.microsoft.com/v1.0/drives/$DriveId/items/$($current.Id)/children?`$select=id,name,file,folder,size,createdDateTime,lastModifiedDateTime,createdBy,webUrl,parentReference"
+                    "https://graph.microsoft.com/v1.0/drives/$DriveId/items/$($current.Id)/children?`$top=999&`$select=id,name,file,folder,size,createdDateTime,lastModifiedDateTime,createdBy,webUrl,parentReference"
                 }
                 
                 $itemsResponse = Invoke-MgGraphRequest -Uri $itemsUri -Method GET
